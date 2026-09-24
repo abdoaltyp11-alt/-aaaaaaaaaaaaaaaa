@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #0f172a;
+  background: #f3f9f8;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  direction: rtl;
+  background:
+    radial-gradient(circle at top right, rgba(36, 176, 128, 0.14), transparent 32%),
+    linear-gradient(180deg, #f5fbf9 0%, #eef6ff 100%);
+  color: #0f172a;
+  overscroll-behavior-y: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@media (max-width: 640px) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .app-shell {
+    min-height: 100svh;
+  }
+
+  .card {
+    border-radius: 1.25rem;
+  }
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+@layer components {
+  .app-shell {
+    @apply min-h-screen bg-transparent text-slate-900;
+  }
+
+  .card {
+    @apply rounded-3xl border border-slate-200/80 bg-white/90 shadow-[0_16px_40px_rgba(15,118,110,0.08)];
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-brand-600 to-medical-600 px-5 py-2.5 font-medium text-white shadow-lg shadow-brand-500/20 transition duration-200 hover:scale-[1.01] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-brand-200;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white/80 px-5 py-2.5 font-medium text-slate-700 backdrop-blur transition hover:border-brand-200 hover:bg-brand-50;
+  }
+
+  .input {
+    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100;
+  }
+
+  .label {
+    @apply mb-2 block text-sm font-medium text-slate-700;
+  }
+
+  .page-gradient {
+    background:
+      radial-gradient(circle at top left, rgba(65, 192, 160, 0.12), transparent 20%),
+      radial-gradient(circle at bottom right, rgba(46, 136, 232, 0.12), transparent 22%);
+  }
+}

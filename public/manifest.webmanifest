@@ -1,0 +1,21 @@
+{
+  "name": "صحيحتي",
+  "short_name": "صحيحتي",
+  "description": "منصة رعاية صحية رقمية للمرضى والأطباء ومقدمي الرعاية.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f9f8",
+  "theme_color": "#0f9f83",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

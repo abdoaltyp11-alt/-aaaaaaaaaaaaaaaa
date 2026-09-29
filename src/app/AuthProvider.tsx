@@ -14,7 +14,19 @@ import { db } from '@/lib/firebase';
 import { get, ref, set } from 'firebase/database';
 import { createUserWithEmailAndPassword, deleteUser, FacebookAuthProvider, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
 
-const AUTH_STORAGE_KEY = 'sahhati-auth-session';
+const AUTH_STORAGE_KEY = 'sahhati-auth-session';\n
+const DEMO_PASSWORD = '123456';
+const DEMO_OTP = '123456';
+
+const DEMO_USERS: User[] = [
+  { id: 'demo-patient', fullName: 'مستخدم تجريبي', email: 'patient@demo.com', phone: '01000000000', role: 'PATIENT', status: 'VERIFIED' },
+  { id: 'demo-doctor', fullName: 'د. طبيب تجريبي', email: 'doctor@demo.com', phone: '01000000001', role: 'DOCTOR', status: 'VERIFIED' },
+  { id: 'demo-nurse', fullName: 'ممرض تجريبي', email: 'nurse@demo.com', phone: '01000000002', role: 'NURSE', status: 'VERIFIED' },
+  { id: 'demo-consultant', fullName: 'استشاري تجريبي', email: 'consultant@demo.com', phone: '01000000003', role: 'CONSULTANT', status: 'VERIFIED' },
+  { id: 'demo-admin', fullName: 'مدير تجريبي', email: 'admin@demo.com', phone: '01000000004', role: 'ADMIN', status: 'VERIFIED' },
+];
+
+
 
 function withoutUndefined<T extends object>(value: T): T {
   return Object.fromEntries(
@@ -136,10 +148,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [persistSession]);
 
   const signIn = useCallback(async (emailOrPhone: string, password: string) => {
-    if (!isFirebaseConfigured || !auth || !db || !emailOrPhone.includes('@')) {
-      throw new Error('يجب استخدام حساب Firebase حقيقي بالبريد الإلكتروني');
+    const normalizedEmail = emailOrPhone.trim().toLowerCase();
+
+    if (!isFirebaseConfigured || !auth || !db) {
+      const demoUser = DEMO_USERS.find((item) => item.email === normalizedEmail);
+      if (!demoUser || password !== DEMO_PASSWORD) {
+        throw new Error('بيانات الدخول التجريبية غير صحيحة. استخدم أحد الحسابات التجريبية الظاهرة في صفحة الدخول.');
+      }
+      persistSession({ user: demoUser, token: 'demo-token', verificationCode: DEMO_OTP });
+      return;
     }
-    const credential = await signInWithEmailAndPassword(auth, emailOrPhone.trim(), password);
+
+    if (!normalizedEmail.includes('@')) {
+      throw new Error('يجب استخدام البريد الإلكتروني');
+    }
+
+    const credential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
     const profileSnapshot = await get(ref(db, `users/${credential.user.uid}`));
     const profile = profileSnapshot.val() as User | null;
     if (!profile || profile.id !== credential.user.uid) {
@@ -218,12 +242,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [createGoogleSession, pendingGoogleUser]);
 
   const signUp = useCallback(async (payload: RegisterPayload) => {
-    if (!isFirebaseConfigured || !auth || !db) {
-      throw new Error('إعدادات Firebase غير مكتملة');
-    }
     if (payload.role !== 'PATIENT') {
       throw new Error('إنشاء حساب طبيب أو ممرض يتم بواسطة الإدارة فقط');
     }
+
+    if (!isFirebaseConfigured || !auth || !db) {
+      if (payload.password.length < 6) {
+        throw new Error('كلمة المرور ضعيفة. استخدم 6 أحرف أو أكثر.');
+      }
+      const email = payload.email.trim().toLowerCase();
+      const existingDemo = DEMO_USERS.some((item) => item.email === email);
+      if (existingDemo) {
+        throw new Error('هذا البريد مستخدم في الحسابات التجريبية. استخدم بريدًا آخر.');
+      }
+      const user: User = {
+        id: `demo-${Date.now()}`,
+        fullName: payload.fullName.trim(),
+        email,
+        phone: payload.phone.trim(),
+        role: 'PATIENT',
+        status: 'VERIFIED',
+        avatarUrl: payload.avatarUrl,
+      };
+      persistSession({ user, token: 'demo-token', verificationCode: DEMO_OTP });
+      return;
+    }
+
     const credential = await createUserWithEmailAndPassword(auth, payload.email, payload.password);
     const user: User = {
       id: credential.user.uid,

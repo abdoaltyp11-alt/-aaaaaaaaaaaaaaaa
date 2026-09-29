@@ -14,7 +14,7 @@ import { db } from '@/lib/firebase';
 import { get, ref, set } from 'firebase/database';
 import { createUserWithEmailAndPassword, deleteUser, FacebookAuthProvider, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
 
-const AUTH_STORAGE_KEY = 'sahhati-auth-session';\n
+const AUTH_STORAGE_KEY = 'sahhati-auth-session';
 const DEMO_PASSWORD = '123456';
 const DEMO_OTP = '123456';
 

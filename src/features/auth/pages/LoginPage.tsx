@@ -10,6 +10,14 @@ export default function LoginPage() {
   const [facebookLoading, setFacebookLoading] = useState(false);
   const [error, setError] = useState('');
   const { signIn, signInWithGoogle, signInWithFacebook, pendingGoogleUser, chooseGoogleRole } = useAuth();
+
+  const demoAccounts = [
+    ['patient@demo.com', 'مريض'],
+    ['doctor@demo.com', 'طبيب'],
+    ['nurse@demo.com', 'ممرض'],
+    ['consultant@demo.com', 'استشاري'],
+    ['admin@demo.com', 'مدير'],
+  ] as const;
   const navigate = useNavigate();
 
   const handleSubmit = async (event: FormEvent) => {
@@ -25,8 +33,8 @@ export default function LoginPage() {
           ? '/doctor'
           : '/patient';
       navigate(target, { replace: true });
-    } catch {
-      // UI error state can be added later.
+    } catch (authError) {
+      setError(authError instanceof Error ? authError.message : 'تعذر تسجيل الدخول.');
     } finally {
       setLoading(false);
     }
@@ -124,6 +132,19 @@ export default function LoginPage() {
             </div>
             <h2 className="text-3xl font-black text-slate-900">تسجيل الدخول</h2>
             <p className="mt-2 text-sm text-slate-500">أدخل بيانات حسابك للوصول إلى لوحة التحكم</p>
+          </div>
+
+          <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div className="text-sm font-bold text-amber-900">وضع التجربة</div>
+            <p className="mt-1 text-xs leading-6 text-amber-800">يمكنك تجربة الموقع بدون Firebase باستخدام أي حساب من التالي. كلمة المرور لجميع الحسابات: <b>123456</b></p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {demoAccounts.map(([email, label]) => (
+                <button key={email} type="button" className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-right text-xs hover:bg-amber-100"
+                  onClick={() => { setEmailOrPhone(email); setPassword('123456'); setError(''); }}>
+                  <span className="font-bold">{label}</span><span className="block text-slate-500">{email}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

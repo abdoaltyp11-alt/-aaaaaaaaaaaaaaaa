@@ -76,8 +76,8 @@ const readStoredSession = (): AuthSession | null => {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AuthSession | null>(() => isFirebaseConfigured ? null : readStoredSession());
-  const [authReady, setAuthReady] = useState(!isFirebaseConfigured);
+  const [session, setSession] = useState<AuthSession | null>(() => readStoredSession());
+  const [authReady, setAuthReady] = useState(false);
   const [pendingGoogleUser, setPendingGoogleUser] = useState<AuthContextValue['pendingGoogleUser']>(null);
 
   useEffect(() => {
@@ -108,7 +108,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
       try {
         if (!firebaseUser) {
-          persistSession(null);
+          const stored = readStoredSession();
+          if (stored?.token === 'demo-token' && DEMO_USERS.some((item) => item.id === stored.user.id)) {
+            persistSession(stored);
+          } else {
+            persistSession(null);
+          }
           setAuthReady(true);
           return;
         }
@@ -150,13 +155,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (emailOrPhone: string, password: string) => {
     const normalizedEmail = emailOrPhone.trim().toLowerCase();
 
-    if (!isFirebaseConfigured || !auth || !db) {
-      const demoUser = DEMO_USERS.find((item) => item.email === normalizedEmail);
-      if (!demoUser || password !== DEMO_PASSWORD) {
-        throw new Error('بيانات الدخول التجريبية غير صحيحة. استخدم أحد الحسابات التجريبية الظاهرة في صفحة الدخول.');
+    const demoUser = DEMO_USERS.find((item) => item.email === normalizedEmail);
+    if (demoUser) {
+      if (password !== DEMO_PASSWORD) {
+        throw new Error('كلمة مرور الحساب التجريبي هي 123456');
       }
       persistSession({ user: demoUser, token: 'demo-token', verificationCode: DEMO_OTP });
       return;
+    }
+
+    if (!isFirebaseConfigured || !auth || !db) {
+      throw new Error('استخدم أحد الحسابات التجريبية الظاهرة في صفحة الدخول.');
     }
 
     if (!normalizedEmail.includes('@')) {

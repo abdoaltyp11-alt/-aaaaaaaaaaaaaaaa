@@ -43,6 +43,18 @@ npm run dev
 
 المشروع الحالي يستخدم Firebase Realtime Database وFirebase Storage في الكود؛ لا توجد عمليات Firestore مستخدمة حاليًا.
 
+## إنشاء حسابات الاختبار محليًا
+
+يتطلب السكربت Node.js 20 أو أحدث. انسخ `.env.example` إلى `.env.local`، واضبط محليًا `FIREBASE_PROJECT_ID` و`FIREBASE_DATABASE_URL` و`FIREBASE_API_KEY`. للمصادقة، استخدم Application Default Credentials أو مسار حساب خدمة محفوظ خارج المستودع في `GOOGLE_APPLICATION_CREDENTIALS`، أو اضبط `FIREBASE_CLIENT_EMAIL` و`FIREBASE_PRIVATE_KEY` محليًا. لا تضع بيانات اعتماد Admin في متغيرات `VITE_`، ولا ترفعها إلى GitHub.
+
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\outside\repository\firebase-admin.json"
+npm install
+npm run seed:test-users
+```
+
+يطلب السكربت كلمات مرور الحسابات الثلاثة بإدخال مخفي، وينشئ ملفاتها في `users/{uid}` على Realtime Database. لا يحذف حسابًا موجودًا أو يغيّر كلمة مروره أو ملفه، ويتحقق من تسجيل الدخول بعد تجهيز الحسابات. يعمل تفاعليًا محليًا فقط، ويرفض التشغيل في CI.
+
 ## الفحص
 
 ```bash

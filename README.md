@@ -15,7 +15,7 @@ npm run dev
 
 المشروع مجهز للنشر التلقائي:
 
-1. ارفع الملفات إلى مستودع GitHub على فرع `main` أو `master`.
+1. ارفع الملفات إلى مستودع GitHub على فرع `main`.
 2. افتح **Settings > Pages**.
 3. اختر **GitHub Actions** كمصدر النشر.
 4. انتظر نجاح Workflow باسم **Deploy to GitHub Pages**.

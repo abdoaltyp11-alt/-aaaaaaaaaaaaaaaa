@@ -1,34 +1,34 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { DashboardEmptyState, DashboardLayout, DashboardSection } from '@/components/dashboard/DashboardLayout';
 import { useAuth } from '@/app/AuthProvider';
 
 export default function ConsultantDashboardPage() {
-  const { logout, user } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/auth/login', { replace: true });
-  };
+  const { user } = useAuth();
 
   return (
-    <div className="app-shell px-4 py-6">
-      <div className="mx-auto max-w-7xl">
-        <div className="card mb-6 p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">لوحة الاستشاري</h1>
-              <p className="mt-2 text-slate-600">{user?.fullName ?? 'د. محمد حسن'}</p>
+    <DashboardLayout role="CONSULTANT" eyebrow="الخدمات الطبية" title={`مرحباً، ${user?.fullName || 'بك'}`}>
+      <div className="space-y-6">
+        <section className="rounded-3xl bg-gradient-to-l from-indigo-950 via-indigo-900 to-teal-900 p-6 text-white shadow-lg sm:p-8">
+          <p className="text-sm font-bold text-indigo-200">مساحة الاستشاري</p>
+          <h2 className="mt-2 text-2xl font-black sm:text-3xl">معلومات حسابك وخدمات التطبيق</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-indigo-100">تعرض هذه اللوحة الوظائف المرتبطة فعلياً بحساب الاستشاري، من دون اختلاق جلسات أو إحالات.</p>
+        </section>
+        <div className="grid gap-6 xl:grid-cols-2">
+          <DashboardSection title="الجلسات والإحالات" detail="مصادر المواعيد الحالية لا توفر قائمة جلسات خاصة بدور الاستشاري.">
+            <DashboardEmptyState title="لا توجد جلسات مرتبطة بهذا الحساب" detail="عند إسناد جلسات إلى الاستشاري في قاعدة البيانات وإتاحتها بقواعد القراءة، ستظهر هنا." />
+          </DashboardSection>
+          <DashboardSection title="إجراءات الحساب">
+            <div className="grid gap-3">
+              <Link to="/profile" className="flex min-h-16 items-center justify-between rounded-xl border border-slate-200 p-4 font-semibold transition hover:border-teal-300 hover:bg-teal-50/60">
+                تحديث الملف الشخصي <span aria-hidden="true" className="text-teal-700">←</span>
+              </Link>
+              <Link to="/consultant" className="flex min-h-16 items-center justify-between rounded-xl border border-slate-200 p-4 font-semibold transition hover:border-teal-300 hover:bg-teal-50/60">
+                العودة إلى لوحة الاستشاري <span aria-hidden="true" className="text-teal-700">←</span>
+              </Link>
             </div>
-            <button type="button" className="btn-primary" onClick={handleLogout}>تسجيل الخروج</button>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="card p-4"><h2 className="text-sm text-slate-500">الجلسات الحالية</h2><p className="mt-2 text-3xl font-bold text-slate-900">12</p></div>
-          <div className="card p-4"><h2 className="text-sm text-slate-500">الأحالات</h2><p className="mt-2 text-3xl font-bold text-slate-900">28</p></div>
-          <div className="card p-4"><h2 className="text-sm text-slate-500">المراجعات</h2><p className="mt-2 text-3xl font-bold text-slate-900">94%</p></div>
+          </DashboardSection>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

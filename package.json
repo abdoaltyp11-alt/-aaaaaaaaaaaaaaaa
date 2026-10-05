@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && tsc -p tsconfig.seed.json && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:seed": "tsc -p tsconfig.seed.json",
+    "seed:test-users": "tsx scripts/create-test-users.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.4.2",
@@ -20,17 +22,21 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@inquirer/prompts": "^7.4.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^8.70.1",
     "@typescript-eslint/parser": "^8.70.1",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
+    "dotenv": "^16.4.7",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.0",
+    "firebase-admin": "^13.5.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.2",
     "vite": "^5.4.10"
   }

@@ -6,15 +6,12 @@ import { canJoinAppointment } from '@/features/video-call/hooks/useWebRTC';
 
 export default function AppointmentsPage() {
   const { user } = useAuth();
+  const userId = user?.id;
+  const [appointments, setAppointments] = useState<Appointment[]>(() => userId ? getAppointmentsByUser(userId) : []);
 
-  if (!user) {
-    return null;
-  }
+  useEffect(() => userId ? subscribeToUserAppointments(userId, setAppointments) : undefined, [userId]);
 
-  const [appointments, setAppointments] = useState<Appointment[]>(() => getAppointmentsByUser(user.id));
-
-  useEffect(() => subscribeToUserAppointments(user.id, setAppointments), [user.id]);
-
+  if (!user) return null;
   return (
     <div className="app-shell px-4 py-8">
       <div className="mx-auto max-w-6xl">

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthProvider';
 import { Appointment, subscribeToAppointment } from '@/services/bookingData';
 import { canJoinAppointment, useWebRTC } from '@/features/video-call/hooks/useWebRTC';
@@ -9,13 +9,31 @@ export default function CallPage() {
   const { appointmentId } = useParams();
   const { user } = useAuth();
   const [appointment, setAppointment] = useState<Appointment>();
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     if (!appointmentId) return undefined;
-    return subscribeToAppointment(appointmentId, setAppointment);
+    setAppointment(undefined);
+    setLoadError('');
+    return subscribeToAppointment(
+      appointmentId,
+      (loadedAppointment) => {
+        setAppointment(loadedAppointment);
+        if (!loadedAppointment) setLoadError('الموعد غير موجود أو لا تملك صلاحية الوصول إليه.');
+      },
+      () => setLoadError('تعذر تحميل الموعد أو لا تملك صلاحية الوصول إليه.'),
+    );
   }, [appointmentId]);
 
-  if (!user || !appointment || !appointmentId) {
+  if (!user || !appointmentId) {
+    return <CallEmptyState message="جاري تحميل بيانات الموعد الآمنة..." />;
+  }
+
+  if (loadError) {
+    return <CallEmptyState message={loadError} />;
+  }
+
+  if (!appointment) {
     return <CallEmptyState message="جاري تحميل بيانات الموعد الآمنة..." />;
   }
 
@@ -28,7 +46,6 @@ export default function CallPage() {
 }
 
 function CallSession({ appointment, role, uid }: { appointment: Appointment; role: CallRole; uid: string }) {
-  const navigate = useNavigate();
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const callContainerRef = useRef<HTMLDivElement>(null);

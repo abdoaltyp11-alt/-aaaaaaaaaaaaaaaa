@@ -1,5 +1,5 @@
 import { equalTo, get, onValue, orderByChild, query, ref, set } from 'firebase/database';
-import { db, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 
 export type AppointmentStatus =
   | 'pending_payment'
@@ -67,6 +67,7 @@ export type Appointment = {
   id: string;
   patientId: string;
   doctorId: string;
+  nurseId?: string;
   specialtyId: string;
   serviceId: string;
   serviceName: string;
@@ -266,10 +267,10 @@ async function writeCloudRecord(collectionName: 'appointments' | 'prescriptions'
   }
 }
 
-export async function syncUserCloudData(userId: string, role: 'PATIENT' | 'DOCTOR') {
-  if (!isFirebaseConfigured || !db) return false;
+export async function syncUserCloudData(userId: string, role: 'PATIENT' | 'DOCTOR' | 'NURSE') {
+  if (!isFirebaseConfigured || !db || !auth?.currentUser || auth.currentUser.uid !== userId) return false;
   try {
-    const appointmentField = role === 'PATIENT' ? 'patientId' : 'doctorId';
+    const appointmentField = role === 'PATIENT' ? 'patientId' : role === 'DOCTOR' ? 'doctorId' : 'nurseId';
     const appointmentsSnapshot = await get(query(ref(db, 'appointments'), orderByChild(appointmentField), equalTo(userId)));
     const appointmentsData = appointmentsSnapshot.val() as Record<string, Appointment> | null;
     const appointments = Object.values(appointmentsData ?? {});
@@ -289,7 +290,7 @@ export async function syncUserCloudData(userId: string, role: 'PATIENT' | 'DOCTO
 }
 
 export async function syncCatalogData() {
-  if (!isFirebaseConfigured || !db) return false;
+  if (!isFirebaseConfigured || !db || !auth?.currentUser) return false;
   try {
     const [specialtiesSnapshot, doctorsSnapshot, servicesSnapshot] = await Promise.all([
       get(ref(db, 'specialties')),
@@ -363,8 +364,19 @@ export function getAppointmentsByDoctor(doctorId: string): Appointment[] {
   return bookings.filter((appointment) => appointment.doctorId === doctorId);
 }
 
-function subscribeToCollection<T>(collectionName: 'appointments' | 'prescriptions', field: string, userId: string, onChange: (items: T[]) => void) {
-  if (!isFirebaseConfigured || !db) {
+export function getAppointmentsByNurse(nurseId: string): Appointment[] {
+  const bookings = readStorage<Appointment[]>(BOOKINGS_STORAGE_KEY, []);
+  return bookings.filter((appointment) => appointment.nurseId === nurseId);
+}
+
+function subscribeToCollection<T>(
+  collectionName: 'appointments' | 'prescriptions',
+  field: string,
+  userId: string,
+  onChange: (items: T[]) => void,
+  onError?: (error: Error) => void,
+) {
+  if (!isFirebaseConfigured || !db || !auth?.currentUser || auth.currentUser.uid !== userId) {
     onChange([]);
     return () => undefined;
   }
@@ -372,23 +384,33 @@ function subscribeToCollection<T>(collectionName: 'appointments' | 'prescription
   return onValue(query(ref(db, collectionName), orderByChild(field), equalTo(userId)), (snapshot) => {
     const data = snapshot.val() as Record<string, T> | null;
     onChange(Object.values(data ?? {}));
+  }, (error) => {
+    if (onError) {
+      onError(error);
+      return;
+    }
+    console.error(`Firebase ${collectionName} subscription failed`, error);
   });
 }
 
-export function subscribeToUserAppointments(userId: string, onChange: (items: Appointment[]) => void) {
-  return subscribeToCollection<Appointment>('appointments', 'patientId', userId, onChange);
+export function subscribeToUserAppointments(userId: string, onChange: (items: Appointment[]) => void, onError?: (error: Error) => void) {
+  return subscribeToCollection<Appointment>('appointments', 'patientId', userId, onChange, onError);
 }
 
-export function subscribeToDoctorAppointments(doctorId: string, onChange: (items: Appointment[]) => void) {
-  return subscribeToCollection<Appointment>('appointments', 'doctorId', doctorId, onChange);
+export function subscribeToDoctorAppointments(doctorId: string, onChange: (items: Appointment[]) => void, onError?: (error: Error) => void) {
+  return subscribeToCollection<Appointment>('appointments', 'doctorId', doctorId, onChange, onError);
 }
 
-export function subscribeToPatientPrescriptions(patientId: string, onChange: (items: Prescription[]) => void) {
-  return subscribeToCollection<Prescription>('prescriptions', 'patientId', patientId, onChange);
+export function subscribeToNurseAppointments(nurseId: string, onChange: (items: Appointment[]) => void, onError?: (error: Error) => void) {
+  return subscribeToCollection<Appointment>('appointments', 'nurseId', nurseId, onChange, onError);
 }
 
-export function subscribeToSpecialties(onChange: (items: Specialty[]) => void) {
-  if (!isFirebaseConfigured || !db) {
+export function subscribeToPatientPrescriptions(patientId: string, onChange: (items: Prescription[]) => void, onError?: (error: Error) => void) {
+  return subscribeToCollection<Prescription>('prescriptions', 'patientId', patientId, onChange, onError);
+}
+
+export function subscribeToSpecialties(onChange: (items: Specialty[]) => void, onError?: (error: Error) => void) {
+  if (!isFirebaseConfigured || !db || !auth?.currentUser) {
     onChange(getSpecialties());
     return () => undefined;
   }
@@ -397,11 +419,17 @@ export function subscribeToSpecialties(onChange: (items: Specialty[]) => void) {
     const specialties = Object.values(data ?? {}).filter((specialty) => specialty.active).sort((a, b) => a.order - b.order);
     writeStorage(SPECIALTIES_STORAGE_KEY, specialties);
     onChange(specialties);
+  }, (error) => {
+    if (onError) {
+      onError(error);
+      return;
+    }
+    console.error('Firebase specialties subscription failed', error);
   });
 }
 
 export function subscribeToDoctors(onChange: (items: Doctor[]) => void) {
-  if (!isFirebaseConfigured || !db) {
+  if (!isFirebaseConfigured || !db || !auth?.currentUser) {
     onChange(getDoctorsBySpecialty());
     return () => undefined;
   }
@@ -451,7 +479,6 @@ export function createAppointment(payload: {
   notes: string;
 }): Appointment {
   const doctor = getDoctorById(payload.doctorId);
-  const specialty = getSpecialties().find((item) => item.id === doctor?.specialtyId);
   const service = getDoctorServices(payload.doctorId).find((item) => item.id === payload.serviceId);
 
   const existing = readStorage<Appointment[]>(BOOKINGS_STORAGE_KEY, []);
@@ -486,13 +513,23 @@ export function getAppointmentById(id: string): Appointment | undefined {
   return readStorage<Appointment[]>(BOOKINGS_STORAGE_KEY, []).find((item) => item.id === id);
 }
 
-export function subscribeToAppointment(appointmentId: string, onChange: (appointment: Appointment | undefined) => void) {
+export function subscribeToAppointment(
+  appointmentId: string,
+  onChange: (appointment: Appointment | undefined) => void,
+  onError?: (error: Error) => void,
+) {
   if (!isFirebaseConfigured || !db) {
     onChange(getAppointmentById(appointmentId));
     return () => undefined;
   }
   return onValue(ref(db, `appointments/${appointmentId}`), (snapshot) => {
     onChange(snapshot.val() as Appointment | undefined);
+  }, (error) => {
+    if (onError) {
+      onError(error);
+      return;
+    }
+    console.error('Firebase appointment subscription failed', error);
   });
 }
 

@@ -79,15 +79,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => readStoredSession());
   const [authReady, setAuthReady] = useState(false);
   const [pendingGoogleUser, setPendingGoogleUser] = useState<AuthContextValue['pendingGoogleUser']>(null);
+  const sessionUserId = session?.user.id;
+  const sessionUserRole = session?.user.role;
+  const sessionToken = session?.token;
 
   useEffect(() => {
+    if (!authReady || !sessionUserId || sessionToken === 'demo-token') return;
     void syncCatalogData();
-  }, []);
+  }, [authReady, sessionUserId, sessionToken]);
 
   useEffect(() => {
-    if (!session || !['PATIENT', 'DOCTOR'].includes(session.user.role)) return;
-    void syncUserCloudData(session.user.id, session.user.role as 'PATIENT' | 'DOCTOR');
-  }, [session]);
+    if (!authReady || !sessionUserId || sessionToken === 'demo-token') return;
+    if (sessionUserRole === 'PATIENT' || sessionUserRole === 'DOCTOR' || sessionUserRole === 'NURSE') {
+      void syncUserCloudData(sessionUserId, sessionUserRole);
+    }
+  }, [authReady, sessionUserId, sessionUserRole, sessionToken]);
 
   const persistSession = useCallback((nextSession: AuthSession | null) => {
     setSession(nextSession);
@@ -101,7 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth || !db) return undefined;
+    if (!isFirebaseConfigured || !auth || !db) {
+      setAuthReady(true);
+      return undefined;
+    }
     const firebaseAuth = auth;
     const database = db;
 

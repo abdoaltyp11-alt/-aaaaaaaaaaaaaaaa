@@ -1,10 +1,10 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthProvider';
+import { BASE_PATHS } from '@/lib/constants';
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
-  const navigate = useNavigate();
   const [fullName, setFullName] = useState(user?.fullName ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [saved, setSaved] = useState(false);
@@ -21,7 +21,7 @@ export default function ProfilePage() {
     <div className="app-shell px-4 py-8">
       <div className="mx-auto max-w-2xl">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <Link to={user.role === 'DOCTOR' ? '/doctor' : '/patient'} className="btn-secondary">رجوع</Link>
+          <Link to={BASE_PATHS[user.role] ?? '/'} className="btn-secondary">رجوع</Link>
           <p className="text-sm font-semibold text-brand-700">بيانات الحساب</p>
         </div>
         <section className="card p-6 md:p-8">

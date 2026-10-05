@@ -1,28 +1,46 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import LandingPage from '@/features/auth/pages/LandingPage';
 import LoginPage from '@/features/auth/pages/LoginPage';
 import RegisterPage from '@/features/auth/pages/RegisterPage';
 import OtpPage from '@/features/auth/pages/OtpPage';
 import { AuthProvider, useAuth } from '@/app/AuthProvider';
-import PatientDashboardPage from '@/features/patient/pages/PatientDashboardPage';
-import DoctorDashboardPage from '@/features/doctor/pages/DoctorDashboardPage';
-import ConsultantDashboardPage from '@/features/consultant/pages/ConsultantDashboardPage';
-import NurseDashboardPage from '@/features/nurse/pages/NurseDashboardPage';
-import AdminDashboardPage from '@/features/admin/pages/AdminDashboardPage';
-import BookingSearchPage from '@/features/booking/pages/BookingSearchPage';
-import DoctorProfilePage from '@/features/booking/pages/DoctorProfilePage';
-import BookingFlowPage from '@/features/booking/pages/BookingFlowPage';
-import BookingSuccessPage from '@/features/booking/pages/BookingSuccessPage';
-import AppointmentsPage from '@/features/booking/pages/AppointmentsPage';
-import ProfilePage from '@/features/profile/pages/ProfilePage';
-import CallPage from '@/features/video-call/pages/CallPage';
 import { BASE_PATHS } from '@/lib/constants';
+
+const PatientDashboardPage = lazy(() => import('@/features/patient/pages/PatientDashboardPage'));
+const DoctorDashboardPage = lazy(() => import('@/features/doctor/pages/DoctorDashboardPage'));
+const ConsultantDashboardPage = lazy(() => import('@/features/consultant/pages/ConsultantDashboardPage'));
+const NurseDashboardPage = lazy(() => import('@/features/nurse/pages/NurseDashboardPage'));
+const AdminDashboardPage = lazy(() => import('@/features/admin/pages/AdminDashboardPage'));
+const BookingSearchPage = lazy(() => import('@/features/booking/pages/BookingSearchPage'));
+const DoctorProfilePage = lazy(() => import('@/features/booking/pages/DoctorProfilePage'));
+const BookingFlowPage = lazy(() => import('@/features/booking/pages/BookingFlowPage'));
+const BookingSuccessPage = lazy(() => import('@/features/booking/pages/BookingSuccessPage'));
+const AppointmentsPage = lazy(() => import('@/features/booking/pages/AppointmentsPage'));
+const ProfilePage = lazy(() => import('@/features/profile/pages/ProfilePage'));
+const CallPage = lazy(() => import('@/features/video-call/pages/CallPage'));
+
+function RouteLoading() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center px-4" role="status" aria-live="polite">
+      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm font-semibold text-slate-600 shadow-sm">
+        جار تحميل الصفحة…
+      </div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, authReady } = useAuth();
 
   if (!authReady) {
-    return null;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4" role="status" aria-live="polite">
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm font-semibold text-slate-600 shadow-sm">
+          جار التحقق من جلسة الدخول…
+        </div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -41,17 +59,27 @@ function RoleRoute({
 }) {
   const { user } = useAuth();
 
-  if (!user || !allowed.includes(user.role)) {
-    return <Navigate to={BASE_PATHS.PATIENT} replace />;
+  if (!user) {
+    return <Navigate to="/auth/login" replace />;
+  }
+
+  if (!allowed.includes(user.role)) {
+    return <Navigate to={BASE_PATHS[user.role] ?? '/'} replace />;
   }
 
   return <>{children}</>;
 }
 
+function RoleHomeRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={user ? BASE_PATHS[user.role] ?? '/' : '/'} replace />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <Routes>
+      <Suspense fallback={<RouteLoading />}>
+       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/register" element={<RegisterPage />} />
@@ -120,8 +148,9 @@ export default function App() {
           }
         />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        <Route path="*" element={<RoleHomeRedirect />} />
+       </Routes>
+      </Suspense>
     </AuthProvider>
   );
 }
